@@ -1,0 +1,9 @@
+syntax = "proto2";
+
+package thunder;
+
+message Packet{
+  required string type_name = 1;
+  optional uint32 topic = 2;
+  required bytes body = 3;
+}
