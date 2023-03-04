@@ -1,9 +1,8 @@
 #ifndef PUBMIXIN_H
 #define PUBMIXIN_H
 
+#include <memory>
 #include <zmq.hpp>
-#include <iostream>
-#include <unordered_map>
 #include <string>
 #include <packet.h>
 #include <../protobuf/packet.pb.h>
@@ -12,25 +11,17 @@ class PubSocket{
 
 
   public:
-    PubSocket(zmq::context_t *pContext):
-      m_pSocket(NULL),
-      m_pContext(pContext)
-    {}
+    PubSocket(const zmq::context_t *pContext, const std::string &address){
+      m_socket = std::make_unique<zmq::socket_t>(pContext, ZMQ_PUB);
+      m_socket->bind(address.c_str());
+    }
 
     template <class T>
     void eventLoop(){}
 
-    void publisher_bind(const char* address){
-      if(m_pSocket){
-        m_pSocket->close();
-        delete m_pSocket;
-      }
-      m_pSocket = new zmq::socket_t(*m_pContext, ZMQ_PUB);
-      m_pSocket->bind(address);
-    }
 
     template<typename T>
-    void publish(T &data){
+    void publish(const T &data){
       std::string topic = T::descriptor()->full_name();
       thunder::Packet packet;
       m_pSocket->send(zmq::message_t(topic.c_str(), topic.size()), ZMQ_SNDMORE); //TODO: topic stuff
@@ -45,8 +36,7 @@ class PubSocket{
     }
 
   private:
-    zmq::socket_t *m_pSocket;
-    zmq::context_t *m_pContext;
+    std::unique_ptr<zmq::socket_t> m_socket;
 };
 
 #endif

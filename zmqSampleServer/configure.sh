@@ -1,5 +1,0 @@
-#! /bin/sh
-
-rm -r build
-cmake -S . -B build
-cd build ; make

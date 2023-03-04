@@ -1,8 +1,0 @@
-syntax = "proto2";
-
-package thunder;
-
-message Error{
-  required string message = 1;
-  optional uint32 code = 2;
-}

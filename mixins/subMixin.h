@@ -1,6 +1,8 @@
 #ifndef SUBMIXIN_H
 #define SUBMIXIN_H
 
+#include <memory>
+#include <vector>
 #include <zmq.hpp>
 #include <iostream>
 #include <unordered_map>
@@ -10,10 +12,18 @@
 
 class SubSocket{
   public:
-    SubSocket(zmq::context_t *pContext):
-      m_pSocket(NULL),
-      m_pContext(pContext)
-    {}
+    SubSocket(
+      zmq::context_t *pContext, 
+      std::vector<std::string> addresses,
+      std::vector<std::string> topics){
+      m_subSocket = std::make_unique<zmq::socket_t>(pContext, ZMQ_SUB);
+      for(auto address: addresses){
+        m_subSocket->connect(address.c_str());
+      }
+      for(auto topic: topics){
+        m_subSocket->setsockopt(ZMQ_SUBSCRIBE, topic.c_str(), topic.size());
+      }
+    }
 
     template <class T>
     void eventLoop(){}
@@ -34,21 +44,7 @@ class SubSocket{
       }
     }
 
-    void subscriber_connect(const char* address){
-      if(!m_pSocket){
-        m_pSocket = new zmq::socket_t(*m_pContext, ZMQ_SUB);
-      }
-      m_pSocket->connect(address);
-    }
-
-    template<typename T>
-    void subscribe(){
-      if(!m_pSocket){
-        m_pSocket = new zmq::socket_t(*m_pContext, ZMQ_SUB);
-      }
-      std::string topic = T::descriptor()->full_name();
-      m_pSocket->setsockopt(ZMQ_SUBSCRIBE, topic.c_str(), topic.size());
-    }
+    
 
   private:
     template<class H>
@@ -65,9 +61,10 @@ class SubSocket{
       read_packet<M>(packet, data);
       pHandler->subscriber_update(data);
     }
-
+  private:
     zmq::socket_t *m_pSocket;
     zmq::context_t *m_pContext;
+    std::unique_ptr<zmq::socket_t> m_subSocket;
 };
 
 #endif
